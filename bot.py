@@ -49,6 +49,19 @@ async def addPoints(ctx, member: discord.Member, amount: int):
     await ctx.send(f"Added {amount} points to {member.display_name}. They now have {points[str(member.id)]} points.")
     print(f"Updated points: {points}")
 
+@bot.command(name='multipleaddpoints')
+async def multyAddPoints(ctx, amount: int, *members: discord.Member):
+    print(f"Command received: addpoints {members} {amount}")
+    for member in members:
+        if str(member.id) in points:
+            points[str(member.id)] += amount
+        else:
+            points[str(member.id)] = amount
+    savePoints()
+    member_names = ", ".join([member.display_name for member in members])
+    await ctx.send(f"Added {amount} points to {member_names}.")
+    print(f"Updated points: {points}")
+
 # Command to check points
 @bot.command(name='points')
 async def checkPoints(ctx, member: discord.Member = None):
@@ -65,6 +78,14 @@ async def resetPoints(ctx, member: discord.Member):
     points[str(member.id)] = 0
     savePoints()
     await ctx.send(f"{member.display_name}'s points have been reset to 0.")
+
+# Command to reset points for everyone
+@bot.command(name='resetpointseverybody')
+async def resetPointsEverybody(ctx):
+    for member_id in points.keys():
+        points[member_id] = 0
+    savePoints()
+    await ctx.send("All members' points have been reset to 0.")
 
 # Command to list all points
 @bot.command(name='listpoints')
@@ -120,6 +141,5 @@ async def graphPoints(ctx):
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user}')
 
-# Replace 'YOUR_BOT_TOKEN' with your actual bot token
 from keys import token
 bot.run(token)
