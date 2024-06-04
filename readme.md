@@ -39,15 +39,8 @@ Installation
    pip install discord.py matplotlib
    ```
 
-3. Create the `points.json` file:
 
-   Create an empty `points.json` file in the project directory with the following content:
-
-   ```
-   {}
-   ```
-
-4. Configure the bot token:
+3. Configure the bot token:
 
    Create a `keys.py` file in the project directory and add your bot token:
 
