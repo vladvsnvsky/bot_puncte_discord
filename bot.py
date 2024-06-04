@@ -13,51 +13,67 @@ intents.members = True  # Enable member intent to fetch server nicknames
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# File to store points data
-POINTS_FILE = 'points.json'
+# Function to generate the points file name based on the server name
+def getPointsFileName(guild):
+    return f"{guild.name.replace(' ', '_').replace('/', '_')}.json"
 
 # Function to load points from file
-def loadPoints():
-    if os.path.exists(POINTS_FILE):
-        with open(POINTS_FILE, 'r') as f:
+def loadPoints(guild):
+    points_file = getPointsFileName(guild)
+    if os.path.exists(points_file):
+        with open(points_file, 'r') as f:
             try:
                 points = json.load(f)
             except json.JSONDecodeError:
                 points = {}
     else:
         points = {}
-    return points
+    return points, points_file
 
 # Function to save points to file
-def savePoints():
-    with open(POINTS_FILE, 'w') as f:
+def savePoints(points, points_file):
+    with open(points_file, 'w') as f:
         json.dump(points, f)
 
-# Load points from file
-points = loadPoints()
-print(f"Loaded points: {points}")
+# Command to display help information about all commands
+@bot.command(name='statshelp')
+async def statsHelp(ctx):
+    help_message = """
+    **Available Commands:**
+    - `!addpoints @member amount` - Add points to a member
+    - `!multipleaddpoints amount @member1 @member2 ...` - Add points to multiple members
+    - `!points [@member]` - Check points of a member (or yourself if no member is mentioned)
+    - `!resetpoints @member` - Reset points of a member
+    - `!resetpointseverybody` - Reset points of all members
+    - `!listpoints` - List all members and their points
+    - `!graphpoints` - Generate and send a graph of points distribution
+    """
+    await ctx.send(help_message)
+
 
 # Command to add points
 @bot.command(name='addpoints')
 async def addPoints(ctx, member: discord.Member, amount: int):
+    points, points_file = loadPoints(ctx.guild)
     print(f"Command received: addpoints {member} {amount}")
     if str(member.id) in points:
         points[str(member.id)] += amount
     else:
         points[str(member.id)] = amount
-    savePoints()
+    savePoints(points, points_file)
     await ctx.send(f"Added {amount} points to {member.display_name}. They now have {points[str(member.id)]} points.")
     print(f"Updated points: {points}")
 
 @bot.command(name='multipleaddpoints')
 async def multyAddPoints(ctx, amount: int, *members: discord.Member):
+    points, points_file = loadPoints(ctx.guild)
     print(f"Command received: addpoints {members} {amount}")
     for member in members:
         if str(member.id) in points:
             points[str(member.id)] += amount
         else:
             points[str(member.id)] = amount
-    savePoints()
+    savePoints(points, points_file)
     member_names = ", ".join([member.display_name for member in members])
     await ctx.send(f"Added {amount} points to {member_names}.")
     print(f"Updated points: {points}")
@@ -65,6 +81,7 @@ async def multyAddPoints(ctx, amount: int, *members: discord.Member):
 # Command to check points
 @bot.command(name='points')
 async def checkPoints(ctx, member: discord.Member = None):
+    points, _ = loadPoints(ctx.guild)
     if member is None:
         member = ctx.author
     if str(member.id) in points:
@@ -75,21 +92,24 @@ async def checkPoints(ctx, member: discord.Member = None):
 # Command to reset points
 @bot.command(name='resetpoints')
 async def resetPoints(ctx, member: discord.Member):
+    points, points_file = loadPoints(ctx.guild)
     points[str(member.id)] = 0
-    savePoints()
+    savePoints(points, points_file)
     await ctx.send(f"{member.display_name}'s points have been reset to 0.")
 
 # Command to reset points for everyone
 @bot.command(name='resetpointseverybody')
 async def resetPointsEverybody(ctx):
+    points, points_file = loadPoints(ctx.guild)
     for member_id in points.keys():
         points[member_id] = 0
-    savePoints()
+    savePoints(points, points_file)
     await ctx.send("All members' points have been reset to 0.")
 
 # Command to list all points
 @bot.command(name='listpoints')
 async def listPoints(ctx):
+    points, _ = loadPoints(ctx.guild)
     if points:
         msg = "Points leaderboard:\n"
         for member_id, pts in points.items():
@@ -102,6 +122,7 @@ async def listPoints(ctx):
 # Command to generate and send points graph
 @bot.command(name='graphpoints')
 async def graphPoints(ctx):
+    points, _ = loadPoints(ctx.guild)
     if not points:
         await ctx.send("No points to display.")
         return
